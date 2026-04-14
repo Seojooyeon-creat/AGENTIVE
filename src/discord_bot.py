@@ -5,11 +5,13 @@
 """
 
 import os
+import asyncio
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 from summarizer import answer_question
+from main import run_pipeline
 
 load_dotenv()
 
@@ -27,9 +29,17 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
+@tasks.loop(hours=3)
+async def crawl_task():
+    """3시간마다 공지 크롤링 → 요약 → 디스코드 전송"""
+    print("[크롤링 스케줄러] 파이프라인 시작")
+    await asyncio.get_event_loop().run_in_executor(None, run_pipeline)
+
+
 @bot.event
 async def on_ready():
     await bot.tree.sync()
+    crawl_task.start()
     print(f"[AGENTIVE 봇] 로그인: {bot.user} (ID: {bot.user.id})")
 
 
