@@ -74,6 +74,16 @@ async def ask(interaction: discord.Interaction, 질문내용: str):
         )
 
 
+@bot.tree.command(name="크롤링", description="지금 바로 공지사항을 확인하고 새 공지를 알려줍니다")
+async def manual_crawl(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    try:
+        await asyncio.get_event_loop().run_in_executor(None, run_pipeline)
+        await interaction.followup.send("✅ 공지 확인 완료!", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"⚠️ 오류: {e}", ephemeral=True)
+
+
 @bot.tree.command(name="대화초기화", description="AI와의 대화 기록을 초기화합니다")
 async def reset(interaction: discord.Interaction):
     user_id = interaction.user.id
