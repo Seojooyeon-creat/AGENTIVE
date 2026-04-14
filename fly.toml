@@ -1,0 +1,18 @@
+# fly.toml app configuration file generated for agentive-bot on 2026-04-13T17:38:35+09:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'agentive-bot'
+primary_region = 'nrt'
+
+[build]
+
+[env]
+  PYTHONUNBUFFERED = '1'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256
