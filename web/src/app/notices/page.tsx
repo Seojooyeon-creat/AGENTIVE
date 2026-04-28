@@ -41,8 +41,7 @@ export default function NoticesPage() {
       const matchFilter =
         filter === '전체' ||
         (filter === '비교과' && n.source.startsWith('비교과')) ||
-        (filter === '학과' && n.source.startsWith('학과')) ||
-        (filter === '포털' && n.source.startsWith('포털'))
+        (filter === '학과' && n.source.startsWith('학과'))
       const q = search.toLowerCase()
       const matchSearch =
         !q || n.title.toLowerCase().includes(q) || (n.summary ?? '').toLowerCase().includes(q)
@@ -53,7 +52,7 @@ export default function NoticesPage() {
     전체: notices.length,
     비교과: notices.filter((n) => n.source.startsWith('비교과')).length,
     학과: notices.filter((n) => n.source.startsWith('학과')).length,
-    포털: notices.filter((n) => n.source.startsWith('포털')).length,
+
   }), [notices])
 
   const toggleSelect = (id: string) =>

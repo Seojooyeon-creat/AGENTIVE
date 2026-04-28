@@ -24,5 +24,9 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL_WITHCNU: ${{ secrets.DISCORD_WEBHOOK_URL_WITHCNU }}
+          DISCORD_WEBHOOK_URL_SOFT: ${{ secrets.DISCORD_WEBHOOK_URL_SOFT }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          WITHCNU_USER_ID: ${{ secrets.WITHCNU_USER_ID }}
+          WITHCNU_PASSWORD: ${{ secrets.WITHCNU_PASSWORD }}

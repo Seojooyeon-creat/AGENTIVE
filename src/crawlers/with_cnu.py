@@ -150,7 +150,7 @@ def _fetch_detail(session: requests.Session, enc_seq: str) -> str:
 
 # ── 공개 인터페이스 ───────────────────────────────────────────────────────────
 
-def fetch_with_cnu_programs(max_per_board: int = 10) -> list[Notice]:
+def fetch_with_cnu_programs() -> list[Notice]:
     """CNU with U 개인 비교과 프로그램 목록 크롤링"""
     user_id = os.environ.get("WITHCNU_USER_ID", "").strip()
     password = os.environ.get("WITHCNU_PASSWORD", "").strip()
@@ -180,7 +180,7 @@ def fetch_with_cnu_programs(max_per_board: int = 10) -> list[Notice]:
         return []
 
     notices: list[Notice] = []
-    for card in cards[:max_per_board]:
+    for card in cards:
         # 제목
         title_tag = card.select_one("a.tit")
         if not title_tag:

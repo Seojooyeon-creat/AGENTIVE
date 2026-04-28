@@ -12,6 +12,10 @@ export type Notice = {
   url: string
   date: string | null
   summary: string | null
+  apply_start: string | null
+  apply_deadline: string | null
+  activity_start: string | null
+  activity_end: string | null
   posted_at: string
 }
 
@@ -82,11 +86,55 @@ export function getSourceMeta(source: string): SourceMeta {
   }
 }
 
+export function formatPeriod(start: string | null, end: string | null): string | null {
+  if (!start && !end) return null
+  const fmt = (iso: string) => iso.replace(/-/g, '.')
+  if (start && end) return `${fmt(start)} ~ ${fmt(end)}`
+  if (start) return `${fmt(start)} ~`
+  return `~ ${fmt(end!)}`
+}
+
 export function formatDisplayDate(date: string | null, postedAt: string): string {
-  if (date) return date
+  if (date) {
+    // "신청기간 2026.04.22 00:00~2026.04.28 23:59" → "2026.04.22 ~ 2026.04.28"
+    const cleaned = date
+      .replace(/신청기간\s*/g, '')
+      .replace(/\s*\d{2}:\d{2}/g, '')   // 시간 제거
+      .replace(/~/g, '~')
+      .trim()
+    return cleaned
+  }
   return new Date(postedAt).toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
+}
+
+type CalendarDraft = {
+  notice: Notice
+  title: string
+  startDate: string
+  endDate: string
+}
+
+function nextDay(iso: string): string {
+  const d = new Date(iso)
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+export function buildCalendarDrafts(notice: Notice): CalendarDraft[] {
+  // 활동 기간 이벤트
+  if (notice.activity_start || notice.activity_end) {
+    const start = notice.activity_start ?? notice.activity_end!
+    const end = notice.activity_end
+      ? nextDay(notice.activity_end)
+      : nextDay(notice.activity_start!)
+    return [{ notice, title: notice.title, startDate: start, endDate: end }]
+  }
+
+  // 활동 기간 없으면 기존 date 필드로 폴백
+  const { start, end } = parseCalendarDates(notice)
+  return [{ notice, title: notice.title, startDate: start, endDate: end }]
 }

@@ -45,6 +45,10 @@ def save_notice(
     url: str,
     date: str | None,
     summary: str,
+    apply_start: str | None = None,
+    apply_deadline: str | None = None,
+    activity_start: str | None = None,
+    activity_end: str | None = None,
 ) -> None:
     """공지를 DB에 저장"""
     client = _get_client()
@@ -56,5 +60,9 @@ def save_notice(
             "url": url,
             "date": date,
             "summary": summary,
+            "apply_start": apply_start,
+            "apply_deadline": apply_deadline,
+            "activity_start": activity_start,
+            "activity_end": activity_end,
         }
     ).execute()

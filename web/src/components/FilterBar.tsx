@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 
-const FILTERS = ['전체', '비교과', '학과', '포털'] as const
+const FILTERS = ['전체', '비교과', '학과'] as const
 export type FilterType = (typeof FILTERS)[number]
 
 type Props = {

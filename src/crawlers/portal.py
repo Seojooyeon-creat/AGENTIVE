@@ -54,7 +54,7 @@ def _fetch_notice_content(url: str, timeout: int = 10) -> str:
         return ""
 
 
-def fetch_portal_notices(max_per_board: int = 10) -> list[Notice]:
+def fetch_portal_notices() -> list[Notice]:
     """포털 전체 공지사항 목록을 크롤링"""
     notices: list[Notice] = []
 
@@ -71,11 +71,7 @@ def fetch_portal_notices(max_per_board: int = 10) -> list[Notice]:
         # 테이블 행 파싱 (class 없는 순수 table)
         rows = soup.select("table tbody tr")
 
-        count = 0
         for row in rows:
-            if count >= max_per_board:
-                break
-
             tds = row.find_all("td")
             if not tds:
                 continue
@@ -124,6 +120,5 @@ def fetch_portal_notices(max_per_board: int = 10) -> list[Notice]:
                     content=content or title,
                 )
             )
-            count += 1
 
     return notices

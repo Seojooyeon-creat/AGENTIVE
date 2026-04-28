@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from('notices')
-    .select('id, source, title, url, date, summary, posted_at')
+    .select('id, source, title, url, date, summary, apply_start, apply_deadline, activity_start, activity_end, posted_at')
     .order('posted_at', { ascending: false })
     .limit(limit)
 

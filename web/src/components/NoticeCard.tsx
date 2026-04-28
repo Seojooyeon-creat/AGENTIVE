@@ -1,7 +1,7 @@
 'use client'
 
-import { type Notice, getSourceMeta, formatDisplayDate } from '@/lib/utils'
-import { ExternalLink, Calendar, Check } from 'lucide-react'
+import { type Notice, getSourceMeta, formatDisplayDate, formatPeriod } from '@/lib/utils'
+import { ExternalLink, Calendar, Check, Activity } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -13,6 +13,7 @@ type Props = {
 export default function NoticeCard({ notice, selected, onToggle }: Props) {
   const meta = getSourceMeta(notice.source)
   const displayDate = formatDisplayDate(notice.date, notice.posted_at)
+  const activityPeriod = formatPeriod(notice.activity_start, notice.activity_end)
 
   return (
     <div
@@ -60,6 +61,15 @@ export default function NoticeCard({ notice, selected, onToggle }: Props) {
             .replace(/✅\s*\*\*학생 행동 필요\*\*:\s*/g, '')
             .replace(/\*\*/g, '')}
         </p>
+      )}
+
+      {/* 활동 기간 */}
+      {activityPeriod && (
+        <div className="flex items-center gap-1.5 text-xs text-emerald-600 mb-3">
+          <Activity className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="font-medium">활동</span>
+          <span className="text-emerald-500">{activityPeriod}</span>
+        </div>
       )}
 
       {/* 하단 메타 정보 */}

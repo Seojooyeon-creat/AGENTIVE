@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { type Notice, parseCalendarDates, getSourceMeta } from '@/lib/utils'
+import { type Notice, buildCalendarDrafts, getSourceMeta } from '@/lib/utils'
 import { X, CalendarDays, Loader2, Trash2, CalendarPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -26,10 +26,7 @@ export type { EventDraft }
 
 export default function CalendarReviewModal({ notices, onClose, onConfirm }: Props) {
   const [drafts, setDrafts] = useState<EventDraft[]>(() =>
-    notices.map((n) => {
-      const { start, end } = parseCalendarDates(n)
-      return { notice: n, title: n.title, startDate: start, endDate: end }
-    })
+    notices.flatMap((n) => buildCalendarDrafts(n))
   )
   const [loading, setLoading] = useState(false)
 
