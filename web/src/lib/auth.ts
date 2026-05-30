@@ -20,6 +20,9 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  pages: {
+    signIn: '/notices',
+  },
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
@@ -31,8 +34,5 @@ export const authOptions: NextAuthOptions = {
       session.accessToken = token.accessToken as string
       return session
     },
-  },
-  pages: {
-    signIn: '/notices',
   },
 }

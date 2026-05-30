@@ -79,11 +79,40 @@ export function getSourceMeta(source: string): SourceMeta {
       badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     }
   }
-  return {
-    label: '포털 공지',
-    color: '#2563EB',
-    badgeClass: 'bg-blue-100 text-blue-700 border-blue-200',
+  if (source.startsWith('소중대')) {
+    return {
+      label: '소프트웨어중심대학사업단',
+      color: '#9B59B6',
+      badgeClass: 'bg-violet-100 text-violet-700 border-violet-200',
+    }
   }
+  return {
+    label: source,
+    color: '#6B7280',
+    badgeClass: 'bg-gray-100 text-gray-600 border-gray-200',
+  }
+}
+
+export function isExpired(notice: Notice): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (notice.apply_deadline) {
+    return new Date(notice.apply_deadline) < today
+  }
+
+  // apply_deadline이 없으면 date 텍스트에서 종료일 파싱
+  // 예: "신청기간 2026.04.22 00:00~2026.04.28 23:59"
+  if (notice.date) {
+    const match = notice.date.match(/~\s*(\d{4})[.\-](\d{1,2})[.\-](\d{1,2})/)
+    if (match) {
+      const [, y, m, d] = match
+      const deadline = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
+      return deadline < today
+    }
+  }
+
+  return false
 }
 
 export function formatPeriod(start: string | null, end: string | null): string | null {

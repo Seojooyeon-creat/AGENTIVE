@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getToken } from 'next-auth/jwt'
 
 type EventDraft = {
   notice: { id: string; title: string; url: string; source: string; summary: string | null }
@@ -48,9 +47,9 @@ async function createCalendarEvent(
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
 
-  if (!session?.accessToken) {
+  if (!token?.accessToken) {
     return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
   }
 
@@ -61,7 +60,7 @@ export async function POST(req: NextRequest) {
   }
 
   const results = await Promise.all(
-    drafts.map((draft) => createCalendarEvent(session.accessToken!, draft))
+    drafts.map((draft) => createCalendarEvent(token.accessToken as string, draft))
   )
 
   const failed = results.filter((r) => !r.success)
