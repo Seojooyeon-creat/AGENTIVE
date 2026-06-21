@@ -33,7 +33,7 @@ const stats = [
   { icon: BookOpen, value: '매 3시간', label: '자동 수집 주기' },
   { icon: Zap, value: 'AI 요약', label: 'Claude 기반' },
   { icon: Clock, value: '원클릭', label: '캘린더 추가' },
-  { icon: Users, value: '무료', label: '충남대 학생 누구나' },
+  { icon: Users, value: '무료', label: '컴퓨터인공지능학부 학생' },
 ]
 
 export default function HomePage() {
@@ -57,13 +57,13 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-bold text-white leading-tight mb-6 tracking-tight">
-              충남대 공지사항을
+              충남대 학교·학부 공지를
               <br />
               <span className="text-cnu-accent">내 캘린더</span>에 담아두세요
             </h1>
 
             <p className="text-lg text-white/75 leading-relaxed mb-10 max-w-xl mx-auto">
-              비교과 활동 신청기간, 학과 공지 마감일을 놓치지 마세요.
+              컴퓨터인공지능학부 학생을 위해, 학교·학부 공지와 비교과 신청기간 마감일을 놓치지 마세요.
               <br />
               원하는 공지를 선택하면 Google Calendar에 자동으로 추가됩니다.
             </p>
@@ -200,7 +200,7 @@ export default function HomePage() {
             <span className="font-bold text-gray-800 text-sm">AGENTIVE</span>
           </div>
           <p className="text-sm text-gray-400">
-            © 2025 AGENTIVE — 충남대학교 공지 알리미
+            © 2025 AGENTIVE — 충남대 컴퓨터인공지능학부 공지 알리미
           </p>
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
