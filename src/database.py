@@ -17,8 +17,18 @@ from supabase import create_client, Client
 
 
 def _get_client() -> Client:
-    url = os.environ["SUPABASE_URL"]
-    key = os.environ["SUPABASE_KEY"]
+    url = os.environ.get("SUPABASE_URL", "").strip()
+    key = os.environ.get("SUPABASE_KEY", "").strip()
+    missing = [
+        name
+        for name, value in (("SUPABASE_URL", url), ("SUPABASE_KEY", key))
+        if not value
+    ]
+    if missing:
+        raise RuntimeError(
+            f"환경변수가 비어 있습니다: {', '.join(missing)}. "
+            "GitHub Secrets(또는 로컬 .env)에 값을 설정하세요."
+        )
     return create_client(url, key)
 
 
