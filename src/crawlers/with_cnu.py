@@ -9,11 +9,11 @@
 import os
 import re
 import json
-import hashlib
 import requests
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
 from typing import Optional
+
+from crawlers.models import HEADERS as BASE_HEADERS, Notice, extract_content, make_id
 
 BASE_URL = "https://with.cnu.ac.kr"
 LOGIN_PAGE_URL = f"{BASE_URL}/comm/login/user/dialog/login.do"
@@ -21,28 +21,15 @@ LOGIN_POST_URL = f"{BASE_URL}/comm/login/user/loginProc.do"
 LIST_URL = f"{BASE_URL}/ptfol/imng/icmpNsbjtPgm/findIcmpNsbjtPgmList.do"
 INFO_URL = f"{BASE_URL}/ptfol/imng/icmpNsbjtPgm/findIcmpNsbjtPgmInfo.do"
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    ),
-    "Referer": BASE_URL,
-}
+HEADERS = {**BASE_HEADERS, "Referer": BASE_URL}
 
-
-@dataclass
-class Notice:
-    id: str
-    source: str
-    title: str
-    url: str
-    date: Optional[str]
-    content: str
-
-
-def _make_id(text: str) -> str:
-    return hashlib.md5(text.encode()).hexdigest()
+CONTENT_SELECTORS = (
+    ".view_cont",
+    ".cont_detail",
+    ".pgm_detail",
+    ".view-content",
+    ".con_box",
+)
 
 
 # ── RSA PKCS#1 v1.5 암호화 (외부 라이브러리 불필요) ──────────────────────────
@@ -116,6 +103,13 @@ def _login(session: requests.Session, user_id: str, password: str) -> bool:
         print("[with.cnu 크롤러] 로그인 실패 — 인증 오류 (학번/비밀번호 확인 필요)")
         return False
 
+    # 또는 200 응답으로 alert("사유") + location.href="/non/index.do" 스크립트만 내려옴
+    if re.search(r"location\.(?:href|replace)\s*[=(]\s*[\"']/non/index\.do", post_resp.text):
+        alert = re.search(r"alert\(\s*[\"'](.*?)[\"']\s*\)", post_resp.text)
+        reason = alert.group(1) if alert else "사유 미상"
+        print(f"[with.cnu 크롤러] 로그인 실패 — {reason}")
+        return False
+
     return True
 
 
@@ -135,15 +129,7 @@ def _fetch_detail(session: requests.Session, enc_seq: str) -> str:
     try:
         resp = session.get(INFO_URL, params={"encSddpbSeq": enc_seq}, headers=HEADERS, timeout=10)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "lxml")
-        content_area = (
-            soup.select_one(".view_cont")
-            or soup.select_one(".cont_detail")
-            or soup.select_one(".pgm_detail")
-            or soup.select_one(".view-content")
-            or soup.select_one(".con_box")
-        )
-        return content_area.get_text(separator="\n", strip=True)[:3000] if content_area else ""
+        return extract_content(resp.text, CONTENT_SELECTORS)
     except Exception:
         return ""
 
@@ -200,7 +186,7 @@ def fetch_with_cnu_programs() -> list[Notice]:
                 pass
 
         full_url = f"{INFO_URL}?encSddpbSeq={enc_seq}" if enc_seq else LIST_URL
-        notice_id = _make_id(full_url)
+        notice_id = make_id(full_url)
 
         # 날짜 (신청기간)
         date_tag = card.select_one(".etc_info_txt")

@@ -7,11 +7,13 @@
 import os
 import asyncio
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 from summarizer import answer_question
 from main import run_pipeline
+from database import add_keyword, remove_keyword, list_keywords
 
 load_dotenv()
 
@@ -89,6 +91,62 @@ async def reset(interaction: discord.Interaction):
     user_id = interaction.user.id
     conversation_history.pop(user_id, None)
     await interaction.response.send_message("✅ 대화 기록이 초기화되었습니다.", ephemeral=True)
+
+
+keyword_group = app_commands.Group(name="키워드", description="관심 키워드 알림 관리")
+
+
+@keyword_group.command(name="추가", description="관심 키워드를 등록하면 관련 공지를 DM으로 받습니다")
+async def keyword_add(interaction: discord.Interaction, 키워드: str):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        saved = await asyncio.to_thread(add_keyword, str(interaction.user.id), 키워드)
+    except ValueError as e:
+        await interaction.followup.send(f"⚠️ {e}", ephemeral=True)
+        return
+    except Exception as e:
+        await interaction.followup.send(f"⚠️ 오류가 발생했습니다: {e}", ephemeral=True)
+        return
+    await interaction.followup.send(
+        f"✅ `{saved}` 키워드를 등록했어요. 관련 공지가 올라오면 DM으로 알려드릴게요.\n"
+        "DM을 받으려면 이 서버의 '다이렉트 메시지 허용' 설정이 켜져 있어야 합니다.",
+        ephemeral=True,
+    )
+
+
+@keyword_group.command(name="삭제", description="등록한 관심 키워드를 삭제합니다")
+async def keyword_remove(interaction: discord.Interaction, 키워드: str):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        removed = await asyncio.to_thread(remove_keyword, str(interaction.user.id), 키워드)
+    except Exception as e:
+        await interaction.followup.send(f"⚠️ 오류가 발생했습니다: {e}", ephemeral=True)
+        return
+    if removed:
+        await interaction.followup.send(f"✅ `{키워드}` 키워드를 삭제했어요.", ephemeral=True)
+    else:
+        await interaction.followup.send(f"`{키워드}` 키워드는 등록돼 있지 않아요.", ephemeral=True)
+
+
+@keyword_group.command(name="목록", description="등록한 관심 키워드를 확인합니다")
+async def keyword_list(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        keywords = await asyncio.to_thread(list_keywords, str(interaction.user.id))
+    except Exception as e:
+        await interaction.followup.send(f"⚠️ 오류가 발생했습니다: {e}", ephemeral=True)
+        return
+    if keywords:
+        await interaction.followup.send(
+            "🔔 등록한 키워드: " + ", ".join(f"`{k}`" for k in keywords), ephemeral=True
+        )
+    else:
+        await interaction.followup.send(
+            "등록한 키워드가 없어요. `/키워드 추가`로 등록해보세요.", ephemeral=True
+        )
+
+
+bot.tree.add_command(keyword_group)
 
 
 @bot.event

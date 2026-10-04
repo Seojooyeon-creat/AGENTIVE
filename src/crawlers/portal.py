@@ -1,36 +1,21 @@
 """충남대학교 포털 공지사항 크롤러"""
 
-import hashlib
 import requests
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
-from typing import Optional
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
-}
+from crawlers.models import HEADERS, Notice, extract_content, make_id
 
 # 충남대 포털 공지사항 게시판
 # 링크가 ./?mode=V&no=... 형태라 base_url = 게시판 디렉터리 경로
 NOTICE_BOARDS = []  # 포털 사이트 응답 느림 — 필요시 다시 추가
 
-
-@dataclass
-class Notice:
-    id: str          # 중복 방지용 고유 ID (URL 해시)
-    source: str      # 출처 (예: '포털-학사공지')
-    title: str
-    url: str
-    date: Optional[str]
-    content: str     # 본문 (요약 전 원문)
-
-
-def _make_id(url: str) -> str:
-    return hashlib.md5(url.encode()).hexdigest()
+# 포털 본문 영역 후보 (실제 선택자는 사이트 구조에 따라 조정 필요)
+CONTENT_SELECTORS = (
+    ".board_view_content",
+    ".view_content",
+    ".cont_wrap",
+    "div[class*='content' i]",
+)
 
 
 def _fetch_notice_content(url: str, timeout: int = 10) -> str:
@@ -38,20 +23,22 @@ def _fetch_notice_content(url: str, timeout: int = 10) -> str:
     try:
         resp = requests.get(url, headers=HEADERS, timeout=timeout)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "lxml")
-
-        # 포털 본문 영역 (실제 선택자는 사이트 구조에 따라 조정 필요)
-        content_area = (
-            soup.select_one(".board_view_content")
-            or soup.select_one(".view_content")
-            or soup.select_one(".cont_wrap")
-            or soup.find("div", class_=lambda c: c and "content" in c.lower())
-        )
-        if content_area:
-            return content_area.get_text(separator="\n", strip=True)[:3000]
-        return ""
+        return extract_content(resp.text, CONTENT_SELECTORS)
     except Exception:
         return ""
+
+
+def _resolve_url(base_url: str, href: str) -> str:
+    """게시판 상대 링크(./?mode=V&no=... 등)를 절대 URL로 변환"""
+    if href.startswith("http"):
+        return href
+    if href.startswith("./"):
+        return base_url + href[2:]
+    if href.startswith("?"):
+        return base_url + href
+    if href.startswith("/"):
+        return "https://plus.cnu.ac.kr" + href
+    return base_url + href
 
 
 def fetch_portal_notices() -> list[Notice]:
@@ -92,17 +79,7 @@ def fetch_portal_notices() -> list[Notice]:
             if not href:
                 continue
 
-            # ./?mode=V&no=... → https://plus.cnu.ac.kr/_prog/_board/?mode=V&no=...
-            if href.startswith("http"):
-                full_url = href
-            elif href.startswith("./"):
-                full_url = board["base_url"] + href[2:]
-            elif href.startswith("?"):
-                full_url = board["base_url"] + href
-            elif href.startswith("/"):
-                full_url = "https://plus.cnu.ac.kr" + href
-            else:
-                full_url = board["base_url"] + href
+            full_url = _resolve_url(board["base_url"], href)
 
             # 4번째 td = 작성일
             date = tds[3].get_text(strip=True) if len(tds) >= 4 else None
@@ -112,7 +89,7 @@ def fetch_portal_notices() -> list[Notice]:
 
             notices.append(
                 Notice(
-                    id=_make_id(full_url),
+                    id=make_id(full_url),
                     source=f"포털-{board['name']}",
                     title=title,
                     url=full_url,

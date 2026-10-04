@@ -9,8 +9,18 @@ jobs:
   crawl:
     name: Crawl notices
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # 아래 keepalive 단계에서 워크플로 enable API 호출용
     steps:
       - uses: actions/checkout@v4
+
+      # 저장소에 60일간 커밋이 없으면 GitHub이 schedule 워크플로를 자동 비활성화한다.
+      # 매 실행마다 enable API를 호출해 비활성화 타이머를 초기화한다.
+      - name: Keep scheduled workflow alive
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/crawl.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - uses: actions/setup-python@v5
         with:
@@ -23,6 +33,7 @@ jobs:
         run: python src/main.py
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}  # 키워드 알림 DM 전송용
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL_WITHCNU: ${{ secrets.DISCORD_WEBHOOK_URL_WITHCNU }}
           DISCORD_WEBHOOK_URL_SOFT: ${{ secrets.DISCORD_WEBHOOK_URL_SOFT }}

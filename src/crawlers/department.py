@@ -1,20 +1,16 @@
 """충남대학교 컴퓨터융합학부(컴AI학부) 공지사항 크롤러"""
 
-import hashlib
 import requests
 from datetime import datetime, timedelta
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
 from typing import Optional
 
+from crawlers.models import HEADERS as BASE_HEADERS, Notice, extract_content, make_id
+
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    ),
+    **BASE_HEADERS,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
     "Accept-Encoding": "gzip, deflate, br",
@@ -24,6 +20,13 @@ HEADERS = {
 TIMEOUT = 30
 MAX_RETRIES = 3
 PAGE_SIZE = 10
+
+CONTENT_SELECTORS = (
+    ".board-view-content",
+    ".view-content",
+    ".content",
+    "div[class*='view']",
+)
 
 
 def _make_session() -> requests.Session:
@@ -64,20 +67,6 @@ DEPT_BOARDS = [
 ]
 
 
-@dataclass
-class Notice:
-    id: str
-    source: str
-    title: str
-    url: str
-    date: Optional[str]
-    content: str
-
-
-def _make_id(url: str) -> str:
-    return hashlib.md5(url.encode()).hexdigest()
-
-
 def _parse_date(date_str: str) -> Optional[datetime]:
     """YY.MM.DD 형식 파싱"""
     try:
@@ -86,22 +75,30 @@ def _parse_date(date_str: str) -> Optional[datetime]:
         return None
 
 
+def _is_pinned(row) -> bool:
+    """상단 고정 공지(b-top-box / '공지' 번호 셀) 여부"""
+    if "b-top-box" in row.get("class", []):
+        return True
+    num_td = row.select_one("td.b-num-box")
+    return bool(num_td and "공지" in num_td.get_text())
+
+
+def _resolve_url(base_url: str, href: str) -> str:
+    if href.startswith("http"):
+        return href
+    if href.startswith("?"):
+        return base_url + href
+    if href.startswith("/"):
+        return "https://computer.cnu.ac.kr" + href
+    return base_url + "/" + href
+
+
 def _fetch_notice_content(session: requests.Session, url: str) -> str:
     """개별 공지 본문 수집"""
     try:
         resp = session.get(url, timeout=TIMEOUT)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "lxml")
-
-        content_area = (
-            soup.select_one(".board-view-content")
-            or soup.select_one(".view-content")
-            or soup.select_one(".content")
-            or soup.select_one("div[class*='view']")
-        )
-        if content_area:
-            return content_area.get_text(separator="\n", strip=True)[:3000]
-        return ""
+        return extract_content(resp.text, CONTENT_SELECTORS)
     except Exception:
         return ""
 
@@ -136,11 +133,7 @@ def fetch_department_notices(days_lookback: int = 30) -> list[Notice]:
 
             page_had_notice = False
             for row in rows:
-                # 상단 고정 공지(b-top-box) 스킵
-                if "b-top-box" in row.get("class", []):
-                    continue
-                num_td = row.select_one("td.b-num-box")
-                if num_td and "공지" in num_td.get_text():
+                if _is_pinned(row):
                     continue
 
                 link_tag = row.select_one(board["title_selector"])
@@ -161,20 +154,12 @@ def fetch_department_notices(days_lookback: int = 30) -> list[Notice]:
                 if not href:
                     continue
 
-                if href.startswith("http"):
-                    full_url = href
-                elif href.startswith("?"):
-                    full_url = board["base_url"] + href
-                elif href.startswith("/"):
-                    full_url = "https://computer.cnu.ac.kr" + href
-                else:
-                    full_url = board["base_url"] + "/" + href
-
+                full_url = _resolve_url(board["base_url"], href)
                 content = _fetch_notice_content(session, full_url)
 
                 notices.append(
                     Notice(
-                        id=_make_id(full_url),
+                        id=make_id(full_url),
                         source=f"{board['source_prefix']}-{board['name']}",
                         title=title,
                         url=full_url,
@@ -188,20 +173,15 @@ def fetch_department_notices(days_lookback: int = 30) -> list[Notice]:
                 break
 
             # 페이지에 rows가 PAGE_SIZE보다 적으면 마지막 페이지
-            non_pinned = [
-                r for r in rows
-                if "b-top-box" not in r.get("class", [])
-                and not (r.select_one("td.b-num-box") and "공지" in (r.select_one("td.b-num-box") or {}).get_text(""))
-            ]
+            non_pinned = [r for r in rows if not _is_pinned(r)]
             if len(non_pinned) < PAGE_SIZE:
                 break
 
             offset += PAGE_SIZE
 
     # 날짜 내림차순 정렬
-    def _sort_key(n: Notice):
-        d = _parse_date(n.date) if n.date else None
-        return d or datetime.min
-
-    notices.sort(key=_sort_key, reverse=True)
+    notices.sort(
+        key=lambda n: (_parse_date(n.date) if n.date else None) or datetime.min,
+        reverse=True,
+    )
     return notices
