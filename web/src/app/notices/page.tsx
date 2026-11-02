@@ -140,7 +140,9 @@ export default function NoticesPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error ?? '캘린더 추가에 실패했습니다.')
+        toast.error(data.error ?? '캘린더 추가에 실패했습니다.', {
+          action: res.status === 401 ? { label: '다시 로그인', onClick: () => signIn('google') } : undefined,
+        })
         return
       }
       toast.success(

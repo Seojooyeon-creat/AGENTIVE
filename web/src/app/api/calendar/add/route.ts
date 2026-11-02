@@ -49,8 +49,8 @@ async function createCalendarEvent(
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
 
-  if (!token?.accessToken) {
-    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+  if (!token?.accessToken || token.error) {
+    return NextResponse.json({ error: '로그인이 만료됐어요. 다시 로그인해주세요.' }, { status: 401 })
   }
 
   const { drafts }: { drafts: EventDraft[] } = await req.json()
