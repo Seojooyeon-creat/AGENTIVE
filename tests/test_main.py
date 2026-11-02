@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from crawlers.models import Notice
 from summarizer import NoticeSummary
 from main import (
+    build_push_payload,
+    post_keyword_pushes,
     build_discord_embed,
     build_keyword_dms,
     post_keyword_dms,
@@ -212,3 +214,44 @@ def test_post_keyword_dms_opens_channel_then_sends(monkeypatch):
         ("https://discord.com/api/v10/users/@me/channels", "Bot test-token", {"recipient_id": "111"}),
         ("https://discord.com/api/v10/channels/999/messages", "Bot test-token", {"embeds": [{"title": "A"}]}),
     ]
+
+
+def test_post_keyword_dms_skips_web_email_users(monkeypatch):
+    import requests as req
+    calls = []
+    monkeypatch.setattr(req, "post", lambda *a, **k: calls.append(a))
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "test-token")
+
+    post_keyword_dms({"student@o.cnu.ac.kr": [{"title": "A"}]})
+
+    assert calls == []
+
+
+def test_build_push_payload_strips_markdown():
+    embed = {
+        "title": "🏫 인턴십 모집",
+        "url": "https://x",
+        "description": "📌 **핵심 내용**: 하계 인턴 모집\n📝 **신청 기간**: ~6/20",
+        "author": {"name": "🔔 키워드: 인턴십"},
+    }
+    assert build_push_payload(embed) == {
+        "title": "🔔 키워드: 인턴십",
+        "body": "🏫 인턴십 모집\n하계 인턴 모집",
+        "url": "https://x",
+    }
+
+
+def test_post_keyword_pushes_sends_to_email_users_and_prunes_gone(monkeypatch):
+    import main
+    sent, deleted = [], []
+    subs = {"a@cnu.ac.kr": [{"endpoint": "e1", "keys": {}}, {"endpoint": "e2", "keys": {}}]}
+    monkeypatch.setattr(main, "fetch_push_subscriptions", lambda emails: subs)
+    monkeypatch.setattr(main, "delete_push_subscription", lambda ep: deleted.append(ep))
+    monkeypatch.setattr(
+        main, "send_push", lambda sub, payload: sent.append(sub["endpoint"]) or (None if sub["endpoint"] == "e2" else True)
+    )
+
+    post_keyword_pushes({"a@cnu.ac.kr": [{"title": "A", "url": "u"}], "111": [{"title": "B"}]})
+
+    assert sent == ["e1", "e2"]
+    assert deleted == ["e2"]

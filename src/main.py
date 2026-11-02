@@ -11,8 +11,15 @@ from crawlers.models import Notice
 from crawlers.portal import fetch_portal_notices
 from crawlers.department import fetch_department_notices
 from crawlers.with_cnu import fetch_with_cnu_programs
-from database import filter_new_notices, save_notice, fetch_keyword_subscriptions
+from database import (
+    filter_new_notices,
+    save_notice,
+    fetch_keyword_subscriptions,
+    fetch_push_subscriptions,
+    delete_push_subscription,
+)
 from discord_dm import send_dm
+from web_push import send_push
 from summarizer import summarize_notice, NoticeSummary
 
 load_dotenv()
@@ -167,10 +174,48 @@ def post_keyword_dms(dms: dict[str, list[dict]]) -> None:
 
     sent = 0
     for user_id, embeds in dms.items():
+        # 웹에서 등록한 키워드는 유저 ID가 이메일이라 DM 대상이 아니다 (Discord ID는 숫자)
+        if not user_id.isdigit():
+            continue
         for i in range(0, len(embeds), DISCORD_EMBED_LIMIT):
             if send_dm(token, user_id, {"embeds": embeds[i : i + DISCORD_EMBED_LIMIT]}):
                 sent += 1
     print(f"[키워드] {len(dms)}명 대상 DM {sent}건 전송 완료")
+
+
+def build_push_payload(embed: dict) -> dict:
+    """키워드 DM용 embed → 웹 푸시 payload (sw.js 가 읽는 형식)"""
+    summary = embed.get("description", "").split("\n", 1)[0]
+    summary = summary.replace("📌 **핵심 내용**: ", "").replace("**", "")
+    return {
+        "title": embed.get("author", {}).get("name", "🔔 키워드 알림"),
+        "body": f"{embed['title']}\n{summary}"[:200],
+        "url": embed.get("url", "/notices"),
+    }
+
+
+def post_keyword_pushes(dms: dict[str, list[dict]]) -> None:
+    """웹(이메일 ID) 유저에게 키워드 매칭 공지를 푸시 전송. 만료된 구독은 정리한다."""
+    emails = [uid for uid in dms if not uid.isdigit()]
+    if not emails:
+        return
+    try:
+        subs_by_user = fetch_push_subscriptions(emails)
+    except Exception as e:
+        print(f"[푸시] 구독 조회 실패: {e}")
+        return
+
+    sent = 0
+    for email in emails:
+        for embed in dms[email]:
+            payload = build_push_payload(embed)
+            for sub in subs_by_user.get(email, []):
+                result = send_push(sub, payload)
+                if result is None:
+                    delete_push_subscription(sub["endpoint"])
+                elif result:
+                    sent += 1
+    print(f"[푸시] {len(emails)}명 대상 푸시 {sent}건 전송 완료")
 
 
 def _load_keyword_subscriptions() -> dict[str, list[str]]:
@@ -213,6 +258,7 @@ def _summarize_and_save(notice: Notice, keywords: list[str] | None = None) -> No
         apply_deadline=ns.apply_deadline,
         activity_start=ns.activity_start,
         activity_end=ns.activity_end,
+        matched_keywords=ns.matched_keywords,
     )
     return ns
 
@@ -276,6 +322,7 @@ def run_pipeline() -> None:
     keyword_dms = build_keyword_dms(keyword_matched, subscriptions)
     if keyword_dms:
         post_keyword_dms(keyword_dms)
+        post_keyword_pushes(keyword_dms)
 
     print(f"=== 완료: {total}건 전송 ===")
 

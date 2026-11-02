@@ -8,10 +8,13 @@ type Props = {
   notice: Notice
   selected: boolean
   onToggle: (id: string) => void
+  myKeywords?: string[]
 }
 
-export default function NoticeCard({ notice, selected, onToggle }: Props) {
+export default function NoticeCard({ notice, selected, onToggle, myKeywords = [] }: Props) {
   const meta = getSourceMeta(notice.source)
+  // AI가 이 공지와 관련 있다고 판단한 키워드 중, 내가 등록한 것만 표시
+  const hitKeywords = (notice.matched_keywords ?? []).filter((k) => myKeywords.includes(k))
   const displayDate = formatDisplayDate(notice.date, notice.posted_at)
   const applyPeriod = formatPeriod(notice.apply_start, notice.apply_deadline)
   const activityPeriod = formatPeriod(notice.activity_start, notice.activity_end)
@@ -57,6 +60,14 @@ export default function NoticeCard({ notice, selected, onToggle }: Props) {
               마감
             </span>
           )}
+          {hitKeywords.map((k) => (
+            <span
+              key={k}
+              className="inline-flex items-center text-xs font-semibold px-2 py-1 rounded-full border bg-amber-50 text-amber-700 border-amber-200"
+            >
+              🔔 {k}
+            </span>
+          ))}
         </div>
 
         <div

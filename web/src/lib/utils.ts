@@ -16,6 +16,7 @@ export type Notice = {
   apply_deadline: string | null
   activity_start: string | null
   activity_end: string | null
+  matched_keywords: string[] | null
   posted_at: string
 }
 

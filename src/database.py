@@ -59,6 +59,7 @@ def save_notice(
     apply_deadline: str | None = None,
     activity_start: str | None = None,
     activity_end: str | None = None,
+    matched_keywords: list[str] | None = None,
 ) -> None:
     """공지를 DB에 저장"""
     client = _get_client()
@@ -74,6 +75,7 @@ def save_notice(
             "apply_deadline": apply_deadline,
             "activity_start": activity_start,
             "activity_end": activity_end,
+            "matched_keywords": matched_keywords or [],
         }
     ).execute()
 
@@ -133,6 +135,31 @@ def remove_keyword(user_id: str, keyword: str) -> bool:
         .execute()
     )
     return bool(result.data)
+
+
+def fetch_push_subscriptions(user_ids: list[str]) -> dict[str, list[dict]]:
+    """유저별 웹 푸시 구독 목록 {유저 ID: [{"endpoint", "keys": {"p256dh", "auth"}}, ...]}"""
+    if not user_ids:
+        return {}
+    client = _get_client()
+    result = (
+        client.table("push_subscriptions")
+        .select("user_id, endpoint, p256dh, auth")
+        .in_("user_id", user_ids)
+        .execute()
+    )
+    subs: dict[str, list[dict]] = {}
+    for row in result.data or []:
+        subs.setdefault(row["user_id"], []).append(
+            {"endpoint": row["endpoint"], "keys": {"p256dh": row["p256dh"], "auth": row["auth"]}}
+        )
+    return subs
+
+
+def delete_push_subscription(endpoint: str) -> None:
+    """만료된 구독 제거"""
+    client = _get_client()
+    client.table("push_subscriptions").delete().eq("endpoint", endpoint).execute()
 
 
 def fetch_keyword_subscriptions() -> dict[str, list[str]]:

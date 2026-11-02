@@ -8,8 +8,10 @@ CREATE TABLE IF NOT EXISTS notices (
     url TEXT NOT NULL,
     date TEXT,
     summary TEXT,                  -- Claude가 생성한 요약
+    matched_keywords TEXT[],       -- 요약 시 AI가 고른 관련 등록 키워드 (웹 '내 키워드' 표시용)
     posted_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE notices ADD COLUMN IF NOT EXISTS matched_keywords TEXT[];
 
 -- 최근 공지 조회용 인덱스
 CREATE INDEX IF NOT EXISTS idx_notices_posted_at ON notices (posted_at DESC);
@@ -20,14 +22,28 @@ ALTER TABLE notices ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS notices_public_read ON notices;
 CREATE POLICY notices_public_read ON notices FOR SELECT TO anon, authenticated USING (true);
 
--- 관심 키워드 구독 (디스코드 /키워드 명령으로 등록 → 관련 공지를 DM으로 전송)
+-- 관심 키워드 구독
+--   디스코드 /키워드 명령 → discord_user_id에 Discord ID(숫자) 저장 → 관련 공지를 DM으로 전송
+--   웹 설정 화면        → discord_user_id에 Google 이메일 저장 (DM 없음, 웹에서 '내 키워드' 표시)
 CREATE TABLE IF NOT EXISTS user_keywords (
-    discord_user_id TEXT NOT NULL,
+    discord_user_id TEXT NOT NULL, -- Discord ID 또는 웹 로그인 이메일
     keyword TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (discord_user_id, keyword)
 );
 
 -- 웹에 공개되는 anon 키로는 읽기·쓰기가 안 되도록 RLS 활성화 (정책 없음 = service_role 키만 접근).
--- 따라서 크롤러·봇의 SUPABASE_KEY는 service_role 키여야 한다.
+-- 따라서 크롤러·봇의 SUPABASE_KEY, 웹 서버의 SUPABASE_SERVICE_ROLE_KEY는 service_role 키여야 한다.
 ALTER TABLE user_keywords ENABLE ROW LEVEL SECURITY;
+
+-- 웹 푸시(PWA) 구독. 웹 설정 화면에서 '알림 켜기' → 브라우저 구독 정보 저장.
+-- user_id 는 user_keywords.discord_user_id 와 같은 값(웹 로그인 이메일).
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint TEXT PRIMARY KEY,     -- 브라우저가 발급한 푸시 URL (기기·브라우저마다 다름)
+    user_id TEXT NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions (user_id);
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;  -- service_role 키만 접근

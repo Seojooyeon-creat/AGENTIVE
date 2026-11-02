@@ -1,0 +1,15 @@
+{
+  "name": "AGENTIVE — 충남대 컴퓨터인공지능학부 공지",
+  "short_name": "AGENTIVE",
+  "description": "학교·학부 공지를 모아 요약하고, 관심 키워드 공지를 알림으로 받아보세요.",
+  "start_url": "/notices",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#003399",
+  "lang": "ko",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

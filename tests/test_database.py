@@ -83,6 +83,7 @@ def test_save_notice_calls_upsert():
     upsert_args = mock_client.table.return_value.upsert.call_args[0][0]
     assert upsert_args["id"] == "abc"
     assert upsert_args["source"] == "포털-학사공지"
+    assert upsert_args["matched_keywords"] == []
 
 
 # ── 관심 키워드 구독 ──────────────────────────────────────────

@@ -1,12 +1,30 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { signIn, signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { LogIn, LogOut, CalendarDays, ChevronDown } from 'lucide-react'
+import { LogIn, LogOut, CalendarDays, ChevronDown, UserX, Bell } from 'lucide-react'
+import WithdrawModal from './WithdrawModal'
+import KeywordModal from './KeywordModal'
 
 export default function Header() {
   const { data: session, status } = useSession()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const [keywordOpen, setKeywordOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [menuOpen])
 
   return (
     <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-xl border-b border-gray-100/80 shadow-sm">
@@ -39,9 +57,9 @@ export default function Header() {
             {status === 'loading' ? (
               <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
             ) : session ? (
-              <div className="flex items-center gap-2">
+              <div className="relative" ref={menuRef}>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => setMenuOpen((v) => !v)}
                   className="group flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-all"
                 >
                   {session.user?.image ? (
@@ -60,16 +78,53 @@ export default function Header() {
                   <span className="text-sm font-medium text-gray-700 hidden sm:block max-w-[100px] truncate">
                     {session.user?.name}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden sm:block" />
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-gray-400 hidden sm:block transition-transform ${
+                      menuOpen ? 'rotate-180' : ''
+                    }`}
+                  />
                 </button>
-                <button
-                  onClick={() => signOut()}
-                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition-all"
-                  title="로그아웃"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:block">로그아웃</span>
-                </button>
+
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white border border-gray-100 shadow-xl shadow-gray-200/60 p-1.5 animate-slide-up origin-top-right">
+                    <div className="px-3 py-2 border-b border-gray-50 mb-1">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {session.user?.name}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">{session.user?.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false)
+                        setKeywordOpen(true)
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                    >
+                      <Bell className="w-4 h-4 text-gray-400" />
+                      관심 키워드
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false)
+                        signOut()
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 text-gray-400" />
+                      로그아웃
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false)
+                        setWithdrawOpen(true)
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                    >
+                      <UserX className="w-4 h-4" />
+                      회원 탈퇴
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
@@ -83,6 +138,9 @@ export default function Header() {
           </div>
         </nav>
       </div>
+
+      {withdrawOpen && <WithdrawModal onClose={() => setWithdrawOpen(false)} />}
+      {keywordOpen && <KeywordModal onClose={() => setKeywordOpen(false)} />}
     </header>
   )
 }

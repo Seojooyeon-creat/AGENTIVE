@@ -34,6 +34,8 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}  # 키워드 알림 DM 전송용
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}  # 웹 푸시(PWA) 전송용
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}          # mailto:관리자 이메일
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL_WITHCNU: ${{ secrets.DISCORD_WEBHOOK_URL_WITHCNU }}
           DISCORD_WEBHOOK_URL_SOFT: ${{ secrets.DISCORD_WEBHOOK_URL_SOFT }}

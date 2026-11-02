@@ -8,8 +8,9 @@ import NoticeCard from '@/components/NoticeCard'
 import FilterBar, { type FilterType } from '@/components/FilterBar'
 import FloatingCalendarBar from '@/components/FloatingCalendarBar'
 import CalendarReviewModal, { type EventDraft } from '@/components/CalendarReviewModal'
+import KeywordModal from '@/components/KeywordModal'
 import { type Notice } from '@/lib/utils'
-import { Search, RefreshCw, LogIn, Inbox, SlidersHorizontal } from 'lucide-react'
+import { Search, RefreshCw, LogIn, Inbox, SlidersHorizontal, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type StatusTab = '진행중' | '만료됨'
@@ -24,6 +25,8 @@ export default function NoticesPage() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [showModal, setShowModal] = useState(false)
+  const [showKeywords, setShowKeywords] = useState(false)
+  const [myKeywords, setMyKeywords] = useState<string[]>([])
 
   const today = useMemo(() => {
     const d = new Date()
@@ -45,6 +48,24 @@ export default function NoticesPage() {
   }, [])
 
   useEffect(() => { fetchNotices() }, [fetchNotices])
+
+  useEffect(() => {
+    if (!session) { setMyKeywords([]); return }
+    fetch('/api/keywords')
+      .then((res) => (res.ok ? res.json() : { keywords: [] }))
+      .then((body) => setMyKeywords(body.keywords ?? []))
+      .catch(() => {})
+  }, [session])
+
+  const openKeywords = () => {
+    if (!session) {
+      toast('관심 키워드 등록은 로그인이 필요합니다.', {
+        action: { label: '로그인', onClick: () => signIn('google') },
+      })
+      return
+    }
+    setShowKeywords(true)
+  }
 
   const isExpiredNotice = (n: Notice): boolean => {
     if (n.apply_deadline) return new Date(n.apply_deadline) < today
@@ -167,6 +188,18 @@ export default function NoticesPage() {
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:border-cnu-light focus:ring-2 focus:ring-cnu-light/20 transition-all placeholder:text-gray-400"
               />
             </div>
+            <button
+              onClick={openKeywords}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-white hover:border-gray-300 hover:text-gray-800 transition-all"
+            >
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:block">관심 키워드</span>
+              {myKeywords.length > 0 && (
+                <span className="text-xs px-1.5 py-0.5 rounded-md bg-blue-50 text-cnu-blue font-bold tabular-nums">
+                  {myKeywords.length}
+                </span>
+              )}
+            </button>
             <button
               onClick={fetchNotices}
               disabled={loading}
@@ -293,6 +326,7 @@ export default function NoticesPage() {
                   notice={notice}
                   selected={selected.has(notice.id)}
                   onToggle={toggleSelect}
+                  myKeywords={myKeywords}
                 />
               ))}
             </div>
@@ -306,6 +340,10 @@ export default function NoticesPage() {
         onAdd={handleOpenModal}
         onClear={() => setSelected(new Set())}
       />
+
+      {showKeywords && (
+        <KeywordModal onClose={() => setShowKeywords(false)} onChange={setMyKeywords} />
+      )}
 
       {showModal && (
         <CalendarReviewModal
