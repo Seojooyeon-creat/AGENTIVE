@@ -83,11 +83,11 @@ def test_fetch_content_returns_empty_on_error():
 
 # ── fetch_portal_notices — 빈 게시판 목록 ────────────────────
 
-def test_fetch_portal_notices_empty_boards():
-    from crawlers.portal import fetch_portal_notices
-    # NOTICE_BOARDS가 [] 이므로 외부 호출 없이 빈 리스트 반환
-    result = fetch_portal_notices()
-    assert result == []
+def test_fetch_portal_notices_empty_boards(monkeypatch):
+    import crawlers.portal as portal
+    # 게시판 목록이 비면 외부 호출 없이 빈 리스트 반환
+    monkeypatch.setattr(portal, "NOTICE_BOARDS", [])
+    assert portal.fetch_portal_notices() == []
 
 
 # ── fetch_department_notices — HTML mock ─────────────────────

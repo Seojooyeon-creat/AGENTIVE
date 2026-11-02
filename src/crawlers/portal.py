@@ -7,10 +7,17 @@ from crawlers.models import HEADERS, Notice, extract_content, make_id
 
 # 충남대 포털 공지사항 게시판
 # 링크가 ./?mode=V&no=... 형태라 base_url = 게시판 디렉터리 경로
-NOTICE_BOARDS = []  # 포털 사이트 응답 느림 — 필요시 다시 추가
+NOTICE_BOARDS = [
+    {
+        "name": "장학공지",
+        "url": "https://plus.cnu.ac.kr/_prog/_board/?code=sub07_0713&site_dvs_cd=kr&menu_dvs_cd=0713",
+        "base_url": "https://plus.cnu.ac.kr/_prog/_board/",
+    },
+]
 
 # 포털 본문 영역 후보 (실제 선택자는 사이트 구조에 따라 조정 필요)
 CONTENT_SELECTORS = (
+    ".board_viewDetail",
     ".board_view_content",
     ".view_content",
     ".cont_wrap",
