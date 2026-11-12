@@ -57,6 +57,41 @@ export default function NoticesPage() {
       .catch(() => {})
   }, [session])
 
+  const [ratings, setRatings] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    if (!session) { setRatings({}); return }
+    fetch('/api/feedback')
+      .then((res) => (res.ok ? res.json() : { ratings: {} }))
+      .then((body) => setRatings(body.ratings ?? {}))
+      .catch(() => {})
+  }, [session])
+
+  const rate = async (noticeId: string, good: boolean | null) => {
+    if (!session) {
+      toast('피드백은 로그인이 필요합니다.', {
+        action: { label: '로그인', onClick: () => signIn('google') },
+      })
+      return
+    }
+    const prev = ratings
+    setRatings((r) => {
+      const next = { ...r }
+      if (good === null) delete next[noticeId]
+      else next[noticeId] = good
+      return next
+    })
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ noticeId, good }),
+    }).catch(() => null)
+    if (!res?.ok) {
+      setRatings(prev)
+      toast.error('피드백 저장에 실패했습니다.')
+    }
+  }
+
   const openKeywords = () => {
     if (!session) {
       toast('관심 키워드 등록은 로그인이 필요합니다.', {
@@ -329,6 +364,8 @@ export default function NoticesPage() {
                   selected={selected.has(notice.id)}
                   onToggle={toggleSelect}
                   myKeywords={myKeywords}
+                  rating={ratings[notice.id]}
+                  onRate={rate}
                 />
               ))}
             </div>

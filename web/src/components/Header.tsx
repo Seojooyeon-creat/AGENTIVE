@@ -27,6 +27,7 @@ export default function Header() {
   }, [menuOpen])
 
   return (
+    <>
     <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-xl border-b border-gray-100/80 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
@@ -138,9 +139,11 @@ export default function Header() {
           </div>
         </nav>
       </div>
-
-      {withdrawOpen && <WithdrawModal onClose={() => setWithdrawOpen(false)} />}
-      {keywordOpen && <KeywordModal onClose={() => setKeywordOpen(false)} />}
     </header>
+
+    {/* header의 backdrop-blur가 fixed 기준 컨테이너가 되어 모달이 잘리므로 header 밖에서 렌더 */}
+    {withdrawOpen && <WithdrawModal onClose={() => setWithdrawOpen(false)} />}
+    {keywordOpen && <KeywordModal onClose={() => setKeywordOpen(false)} />}
+    </>
   )
 }

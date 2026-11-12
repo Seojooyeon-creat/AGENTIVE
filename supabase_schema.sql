@@ -47,3 +47,13 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 );
 CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions (user_id);
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;  -- service_role 키만 접근
+
+-- AI 요약 피드백 (웹 공지 카드의 👍/👎). 로그인 유저당 공지 1표, 다시 누르면 변경/취소.
+CREATE TABLE IF NOT EXISTS summary_feedback (
+    notice_id TEXT NOT NULL REFERENCES notices(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,         -- 웹 로그인 이메일
+    good BOOLEAN NOT NULL,         -- true = 좋았어요, false = 별로에요
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (notice_id, user_id)
+);
+ALTER TABLE summary_feedback ENABLE ROW LEVEL SECURITY;  -- service_role 키만 접근

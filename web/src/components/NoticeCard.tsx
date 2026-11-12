@@ -9,9 +9,11 @@ type Props = {
   selected: boolean
   onToggle: (id: string) => void
   myKeywords?: string[]
+  rating?: boolean // true 좋았어요, false 별로에요, undefined 미투표
+  onRate: (id: string, good: boolean | null) => void
 }
 
-export default function NoticeCard({ notice, selected, onToggle, myKeywords = [] }: Props) {
+export default function NoticeCard({ notice, selected, onToggle, myKeywords = [], rating, onRate }: Props) {
   const meta = getSourceMeta(notice.source)
   // AI가 이 공지와 관련 있다고 판단한 키워드 중, 내가 등록한 것만 표시
   const hitKeywords = (notice.matched_keywords ?? []).filter((k) => myKeywords.includes(k))
@@ -92,6 +94,29 @@ export default function NoticeCard({ notice, selected, onToggle, myKeywords = []
         <p className="text-xs text-gray-500 leading-relaxed line-clamp-3 mb-3 flex-1">
           {cleanSummary}
         </p>
+      )}
+
+      {/* AI 요약 피드백 — 같은 버튼 다시 누르면 취소 */}
+      {cleanSummary && (
+        <div className="flex items-center gap-1.5 mb-3 text-xs" onClick={(e) => e.stopPropagation()}>
+          <span className="text-gray-400 mr-1">AI 요약</span>
+          {([[true, '👍 좋았어요'], [false, '👎 별로에요']] as const).map(([good, label]) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={rating === good}
+              onClick={() => onRate(notice.id, rating === good ? null : good)}
+              className={cn(
+                'px-2 py-1 rounded-lg border transition-colors',
+                rating === good
+                  ? 'bg-blue-50 border-cnu-light text-cnu-blue font-semibold'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       )}
 
       {/* Apply period */}
