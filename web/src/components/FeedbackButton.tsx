@@ -4,7 +4,7 @@ import { MessageSquareText } from 'lucide-react'
 
 // 구글 폼 URL. .env.local 에 NEXT_PUBLIC_FEEDBACK_FORM_URL 로 주입.
 const FEEDBACK_FORM_URL =
-  process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL ?? 'https://forms.gle/'
+  process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL ?? 'https://forms.gle/CtE26aTb9bKq2vRo7'
 
 export default function FeedbackButton() {
   return (
